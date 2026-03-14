@@ -1,0 +1,644 @@
+[
+    {
+        "id": "google_sheets",
+        "name": "Google Sheets",
+        "category": "Productivity",
+        "icon": "Database"
+    },
+    {
+        "id": "slack",
+        "name": "Slack",
+        "category": "Communication",
+        "icon": "MessageSquare"
+    },
+    {
+        "id": "gmail",
+        "name": "Gmail",
+        "category": "Communication",
+        "icon": "Mail"
+    },
+    {
+        "id": "stripe",
+        "name": "Stripe",
+        "category": "Payment",
+        "icon": "CreditCard"
+    },
+    {
+        "id": "salesforce",
+        "name": "Salesforce",
+        "category": "CRM",
+        "icon": "Users"
+    },
+    {
+        "id": "hubspot",
+        "name": "HubSpot",
+        "category": "CRM",
+        "icon": "Users"
+    },
+    {
+        "id": "notion",
+        "name": "Notion",
+        "category": "Productivity",
+        "icon": "FileText"
+    },
+    {
+        "id": "airtable",
+        "name": "Airtable",
+        "category": "Database",
+        "icon": "Database"
+    },
+    {
+        "id": "twilio",
+        "name": "Twilio",
+        "category": "Communication",
+        "icon": "Phone"
+    },
+    {
+        "id": "whatsapp_business",
+        "name": "WhatsApp Business",
+        "category": "Communication",
+        "icon": "MessageCircle"
+    },
+    {
+        "id": "discord",
+        "name": "Discord",
+        "category": "Communication",
+        "icon": "MessageSquare"
+    },
+    {
+        "id": "telegram",
+        "name": "Telegram",
+        "category": "Communication",
+        "icon": "Send"
+    },
+    {
+        "id": "zoom",
+        "name": "Zoom",
+        "category": "Communication",
+        "icon": "Video"
+    },
+    {
+        "id": "microsoft_teams",
+        "name": "Microsoft Teams",
+        "category": "Communication",
+        "icon": "Users"
+    },
+    {
+        "id": "jira",
+        "name": "Jira",
+        "category": "Project Management",
+        "icon": "CheckSquare"
+    },
+    {
+        "id": "trello",
+        "name": "Trello",
+        "category": "Project Management",
+        "icon": "Layout"
+    },
+    {
+        "id": "asana",
+        "name": "Asana",
+        "category": "Project Management",
+        "icon": "CheckCircle"
+    },
+    {
+        "id": "monday",
+        "name": "Monday.com",
+        "category": "Project Management",
+        "icon": "Calendar"
+    },
+    {
+        "id": "clickup",
+        "name": "ClickUp",
+        "category": "Project Management",
+        "icon": "CheckSquare"
+    },
+    {
+        "id": "github",
+        "name": "GitHub",
+        "category": "Development",
+        "icon": "Github"
+    },
+    {
+        "id": "gitlab",
+        "name": "GitLab",
+        "category": "Development",
+        "icon": "GitBranch"
+    },
+    {
+        "id": "bitbucket",
+        "name": "Bitbucket",
+        "category": "Development",
+        "icon": "Code"
+    },
+    {
+        "id": "aws_lambda",
+        "name": "AWS Lambda",
+        "category": "Development",
+        "icon": "Cloud"
+    },
+    {
+        "id": "google_cloud_functions",
+        "name": "Google Cloud Functions",
+        "category": "Development",
+        "icon": "Cloud"
+    },
+    {
+        "id": "azure_functions",
+        "name": "Azure Functions",
+        "category": "Development",
+        "icon": "Cloud"
+    },
+    {
+        "id": "heroku",
+        "name": "Heroku",
+        "category": "Development",
+        "icon": "Cloud"
+    },
+    {
+        "id": "netlify",
+        "name": "Netlify",
+        "category": "Development",
+        "icon": "Globe"
+    },
+    {
+        "id": "vercel",
+        "name": "Vercel",
+        "category": "Development",
+        "icon": "Globe"
+    },
+    {
+        "id": "docker",
+        "name": "Docker",
+        "category": "Development",
+        "icon": "Box"
+    },
+    {
+        "id": "kubernetes",
+        "name": "Kubernetes",
+        "category": "Development",
+        "icon": "Server"
+    },
+    {
+        "id": "mailchimp",
+        "name": "Mailchimp",
+        "category": "Marketing",
+        "icon": "Mail"
+    },
+    {
+        "id": "klaviyo",
+        "name": "Klaviyo",
+        "category": "Marketing",
+        "icon": "Mail"
+    },
+    {
+        "id": "convertkit",
+        "name": "ConvertKit",
+        "category": "Marketing",
+        "icon": "Mail"
+    },
+    {
+        "id": "activecampaign",
+        "name": "ActiveCampaign",
+        "category": "Marketing",
+        "icon": "Mail"
+    },
+    {
+        "id": "sendgrid",
+        "name": "SendGrid",
+        "category": "Marketing",
+        "icon": "Mail"
+    },
+    {
+        "id": "facebook_ads",
+        "name": "Facebook Ads",
+        "category": "Marketing",
+        "icon": "Facebook"
+    },
+    {
+        "id": "google_ads",
+        "name": "Google Ads",
+        "category": "Marketing",
+        "icon": "Search"
+    },
+    {
+        "id": "linkedin_ads",
+        "name": "LinkedIn Ads",
+        "category": "Marketing",
+        "icon": "Linkedin"
+    },
+    {
+        "id": "tiktok_ads",
+        "name": "TikTok Ads",
+        "category": "Marketing",
+        "icon": "Video"
+    },
+    {
+        "id": "shopify",
+        "name": "Shopify",
+        "category": "E-commerce",
+        "icon": "ShoppingCart"
+    },
+    {
+        "id": "woocommerce",
+        "name": "WooCommerce",
+        "category": "E-commerce",
+        "icon": "ShoppingCart"
+    },
+    {
+        "id": "magento",
+        "name": "Magento",
+        "category": "E-commerce",
+        "icon": "ShoppingCart"
+    },
+    {
+        "id": "bigcommerce",
+        "name": "BigCommerce",
+        "category": "E-commerce",
+        "icon": "ShoppingCart"
+    },
+    {
+        "id": "paypal",
+        "name": "PayPal",
+        "category": "Payment",
+        "icon": "DollarSign"
+    },
+    {
+        "id": "square",
+        "name": "Square",
+        "category": "Payment",
+        "icon": "CreditCard"
+    },
+    {
+        "id": "quickbooks",
+        "name": "QuickBooks",
+        "category": "Finance",
+        "icon": "FileText"
+    },
+    {
+        "id": "xero",
+        "name": "Xero",
+        "category": "Finance",
+        "icon": "FileText"
+    },
+    {
+        "id": "mysql",
+        "name": "MySQL",
+        "category": "Database",
+        "icon": "Database"
+    },
+    {
+        "id": "postgresql",
+        "name": "PostgreSQL",
+        "category": "Database",
+        "icon": "Database"
+    },
+    {
+        "id": "mongodb",
+        "name": "MongoDB",
+        "category": "Database",
+        "icon": "Database"
+    },
+    {
+        "id": "redis",
+        "name": "Redis",
+        "category": "Database",
+        "icon": "Database"
+    },
+    {
+        "id": "firebase",
+        "name": "Firebase",
+        "category": "Development",
+        "icon": "Flame"
+    },
+    {
+        "id": "supabase",
+        "name": "Supabase",
+        "category": "Database",
+        "icon": "Database"
+    },
+    {
+        "id": "openai",
+        "name": "OpenAI (GPT-4)",
+        "category": "AI/ML",
+        "icon": "Bot"
+    },
+    {
+        "id": "anthropic",
+        "name": "Anthropic (Claude)",
+        "category": "AI/ML",
+        "icon": "Bot"
+    },
+    {
+        "id": "huggingface",
+        "name": "Hugging Face",
+        "category": "AI/ML",
+        "icon": "Bot"
+    },
+    {
+        "id": "pinecone",
+        "name": "Pinecone",
+        "category": "AI/ML",
+        "icon": "Database"
+    },
+    {
+        "id": "zendesk",
+        "name": "Zendesk",
+        "category": "Support",
+        "icon": "Headphones"
+    },
+    {
+        "id": "intercom",
+        "name": "Intercom",
+        "category": "Support",
+        "icon": "MessageCircle"
+    },
+    {
+        "id": "freshdesk",
+        "name": "Freshdesk",
+        "category": "Support",
+        "icon": "Headphones"
+    },
+    {
+        "id": "calendly",
+        "name": "Calendly",
+        "category": "Productivity",
+        "icon": "Calendar"
+    },
+    {
+        "id": "google_calendar",
+        "name": "Google Calendar",
+        "category": "Productivity",
+        "icon": "Calendar"
+    },
+    {
+        "id": "outlook_calendar",
+        "name": "Outlook Calendar",
+        "category": "Productivity",
+        "icon": "Calendar"
+    },
+    {
+        "id": "dropbox",
+        "name": "Dropbox",
+        "category": "Storage",
+        "icon": "HardDrive"
+    },
+    {
+        "id": "google_drive",
+        "name": "Google Drive",
+        "category": "Storage",
+        "icon": "HardDrive"
+    },
+    {
+        "id": "onedrive",
+        "name": "OneDrive",
+        "category": "Storage",
+        "icon": "HardDrive"
+    },
+    {
+        "id": "box",
+        "name": "Box",
+        "category": "Storage",
+        "icon": "HardDrive"
+    },
+    {
+        "id": "typeform",
+        "name": "Typeform",
+        "category": "Forms",
+        "icon": "FileText"
+    },
+    {
+        "id": "google_forms",
+        "name": "Google Forms",
+        "category": "Forms",
+        "icon": "FileText"
+    },
+    {
+        "id": "jotform",
+        "name": "JotForm",
+        "category": "Forms",
+        "icon": "FileText"
+    },
+    {
+        "id": "survey_monkey",
+        "name": "SurveyMonkey",
+        "category": "Forms",
+        "icon": "FileText"
+    },
+    {
+        "id": "zapier",
+        "name": "Zapier",
+        "category": "Automation",
+        "icon": "Zap"
+    },
+    {
+        "id": "make",
+        "name": "Make (Integromat)",
+        "category": "Automation",
+        "icon": "Zap"
+    },
+    {
+        "id": "n8n",
+        "name": "n8n",
+        "category": "Automation",
+        "icon": "Zap"
+    },
+    {
+        "id": "ifttt",
+        "name": "IFTTT",
+        "category": "Automation",
+        "icon": "Zap"
+    },
+    {
+        "id": "wordpress",
+        "name": "WordPress",
+        "category": "CMS",
+        "icon": "Globe"
+    },
+    {
+        "id": "webflow",
+        "name": "Webflow",
+        "category": "CMS",
+        "icon": "Globe"
+    },
+    {
+        "id": "wix",
+        "name": "Wix",
+        "category": "CMS",
+        "icon": "Globe"
+    },
+    {
+        "id": "squarespace",
+        "name": "Squarespace",
+        "category": "CMS",
+        "icon": "Globe"
+    },
+    {
+        "id": "ghost",
+        "name": "Ghost",
+        "category": "CMS",
+        "icon": "Globe"
+    },
+    {
+        "id": "medium",
+        "name": "Medium",
+        "category": "CMS",
+        "icon": "FileText"
+    },
+    {
+        "id": "reddit",
+        "name": "Reddit",
+        "category": "Social",
+        "icon": "MessageSquare"
+    },
+    {
+        "id": "youtube",
+        "name": "YouTube",
+        "category": "Social",
+        "icon": "Video"
+    },
+    {
+        "id": "twitch",
+        "name": "Twitch",
+        "category": "Social",
+        "icon": "Video"
+    },
+    {
+        "id": "spotify",
+        "name": "Spotify",
+        "category": "Media",
+        "icon": "Headphones"
+    },
+    {
+        "id": "soundcloud",
+        "name": "SoundCloud",
+        "category": "Media",
+        "icon": "Headphones"
+    },
+    {
+        "id": "vimeo",
+        "name": "Vimeo",
+        "category": "Media",
+        "icon": "Video"
+    },
+    {
+        "id": "twilio_sendgrid",
+        "name": "Twilio SendGrid",
+        "category": "Communication",
+        "icon": "Mail"
+    },
+    {
+        "id": "mailgun",
+        "name": "Mailgun",
+        "category": "Communication",
+        "icon": "Mail"
+    },
+    {
+        "id": "postmark",
+        "name": "Postmark",
+        "category": "Communication",
+        "icon": "Mail"
+    },
+    {
+        "id": "algolia",
+        "name": "Algolia",
+        "category": "Search",
+        "icon": "Search"
+    },
+    {
+        "id": "elasticsearch",
+        "name": "Elasticsearch",
+        "category": "Search",
+        "icon": "Search"
+    },
+    {
+        "id": "mixpanel",
+        "name": "Mixpanel",
+        "category": "Analytics",
+        "icon": "BarChart"
+    },
+    {
+        "id": "amplitude",
+        "name": "Amplitude",
+        "category": "Analytics",
+        "icon": "BarChart"
+    },
+    {
+        "id": "segment",
+        "name": "Segment",
+        "category": "Analytics",
+        "icon": "BarChart"
+    },
+    {
+        "id": "google_analytics",
+        "name": "Google Analytics",
+        "category": "Analytics",
+        "icon": "BarChart"
+    },
+    {
+        "id": "datadog",
+        "name": "Datadog",
+        "category": "Monitoring",
+        "icon": "Activity"
+    },
+    {
+        "id": "new_relic",
+        "name": "New Relic",
+        "category": "Monitoring",
+        "icon": "Activity"
+    },
+    {
+        "id": "sentry",
+        "name": "Sentry",
+        "category": "Monitoring",
+        "icon": "AlertTriangle"
+    },
+    {
+        "id": "pagerduty",
+        "name": "PagerDuty",
+        "category": "Monitoring",
+        "icon": "AlertTriangle"
+    },
+    {
+        "id": "grafana",
+        "name": "Grafana",
+        "category": "Monitoring",
+        "icon": "Activity"
+    },
+    {
+        "id": "prometheus",
+        "name": "Prometheus",
+        "category": "Monitoring",
+        "icon": "Activity"
+    },
+    {
+        "id": "cloudflare",
+        "name": "Cloudflare",
+        "category": "Security",
+        "icon": "Shield"
+    },
+    {
+        "id": "auth0",
+        "name": "Auth0",
+        "category": "Security",
+        "icon": "Lock"
+    },
+    {
+        "id": "okta",
+        "name": "Okta",
+        "category": "Security",
+        "icon": "Lock"
+    },
+    {
+        "id": "1password",
+        "name": "1Password",
+        "category": "Security",
+        "icon": "Key"
+    },
+    {
+        "id": "lastpass",
+        "name": "LastPass",
+        "category": "Security",
+        "icon": "Key"
+    }
+]

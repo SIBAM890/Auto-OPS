@@ -1,0 +1,6 @@
+node_modules/
+.env
+credentials.json
+auth_info_baileys/
+server.log
+server_safe.log
