@@ -58,7 +58,7 @@ export const TOOL_CATEGORIES = [
         name: 'AI & Intelligence',
         tools: [
             { id: 'chatgpt', label: 'ChatGPT (OpenAI)', type: 'action', icon: 'Bot' },
-            { id: 'gemini', label: 'Google Gemini', type: 'action', icon: 'Bot' },
+            { id: 'ollama', label: 'Ollama (qwen3:8b)', type: 'action', icon: 'Bot' },
             { id: 'claude', label: 'Claude AI', type: 'action', icon: 'Bot' },
             { id: 'dalle', label: 'DALL·E Image', type: 'action', icon: 'Bot' },
             { id: 'whisper', label: 'Whisper Audio', type: 'action', icon: 'Bot' },

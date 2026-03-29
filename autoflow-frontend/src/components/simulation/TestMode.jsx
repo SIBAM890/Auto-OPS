@@ -1,143 +1,276 @@
-import { useState } from 'react';
-import { Send, CheckCircle, Clock } from 'lucide-react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { Send, CheckCircle, RefreshCw, Smartphone, Rocket, WifiOff, Clock } from 'lucide-react';
 import { workflowApi } from '../../services/workflowApi';
 import clsx from 'clsx';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+import { QRCodeSVG } from 'qrcode.react';
+
+// Phase machine: idle → deploying → waiting_qr → qr_ready → connected → error
+const PHASES = { IDLE: 'idle', DEPLOYING: 'deploying', WAITING_QR: 'waiting_qr', QR_READY: 'qr_ready', CONNECTED: 'connected', ERROR: 'error' };
 
 export const TestMode = () => {
-    const [messages, setMessages] = useState([]);
-    const [inputText, setInputText] = useState("");
-    const [isSimulating, setIsSimulating] = useState(false);
-    const [executionSteps, setExecutionSteps] = useState([]);
+    const [phase, setPhase] = useState(PHASES.IDLE);
+    const [qrCode, setQrCode] = useState(null);
+    const [statusText, setStatusText] = useState('Ready to start a test session');
+    const [errorText, setErrorText] = useState(null);
 
-    const handleSendMessage = async (e) => {
-        e.preventDefault();
-        if (!inputText.trim()) return;
+    const isMounted = useRef(true);
+    const pollRef = useRef(null);
+    const phaseRef = useRef(PHASES.IDLE);
 
-        // Add user message
-        const userMsg = { role: 'user', text: inputText, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) };
-        setMessages(prev => [...prev, userMsg]);
-        const currentInput = inputText;
-        setInputText("");
-        setIsSimulating(true);
-        setExecutionSteps([]); // Clear previous steps logic
+    useEffect(() => { phaseRef.current = phase; }, [phase]);
+    useEffect(() => {
+        // On mount, just check if already connected — don't auto-deploy
+        checkCurrentStatus();
+        return () => {
+            isMounted.current = false;
+            if (pollRef.current) clearTimeout(pollRef.current);
+        };
+    }, []);
 
-        // Simulate "Processing" steps visual
-        addStep("Message Received", 200);
-
+    const checkCurrentStatus = async () => {
         try {
-            addStep("Detecting Intent...", 500);
+            const data = await workflowApi.getStatus();
+            if (!isMounted.current) return;
+            if (data.connected) {
+                setPhase(PHASES.CONNECTED);
+                setStatusText('WhatsApp Connected');
+            } else if (data.qr) {
+                // Was already deploying — pick up where we left off
+                setQrCode(data.qr);
+                setPhase(PHASES.QR_READY);
+                setStatusText('Scan QR Code to connect');
+                scheduleNextPoll(2000);
+            }
+            // Otherwise stay idle — user must press the button
+        } catch (_) {}
+    };
 
-            // Actual API Call
-            const response = await workflowApi.simulate(currentInput);
+    const scheduleNextPoll = useCallback((delayMs = 2000) => {
+        if (pollRef.current) clearTimeout(pollRef.current);
+        pollRef.current = setTimeout(pollStatus, delayMs);
+    }, []);
 
-            addStep("Intent: " + (response.intent || "Processed"), 800);
-            addStep("Executing Workflow...", 1200);
+    const pollStatus = useCallback(async () => {
+        if (!isMounted.current || phaseRef.current === PHASES.CONNECTED) return;
+        try {
+            const data = await workflowApi.getStatus();
+            if (!isMounted.current) return;
 
-            setTimeout(() => {
-                const botMsg = {
-                    role: 'bot',
-                    text: response.reply || "No reply generated.",
-                    time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                };
-                setMessages(prev => [...prev, botMsg]);
-                addStep("Reply Sent Successfully", 1500);
-                setIsSimulating(false);
-            }, 1500);
+            if (data.connected) {
+                setPhase(PHASES.CONNECTED);
+                setQrCode(null);
+                setStatusText('WhatsApp connected! Send a message to test live.');
+            } else if (data.qr) {
+                setQrCode(data.qr);
+                setPhase(PHASES.QR_READY);
+                setStatusText('Scan with WhatsApp');
+                scheduleNextPoll(2000);
+            } else if (data.connecting) {
+                setPhase(PHASES.WAITING_QR);
+                setStatusText('Waiting for QR code...');
+                scheduleNextPoll(1500);
+            } else {
+                scheduleNextPoll(3000);
+            }
+        } catch (e) {
+            if (isMounted.current) scheduleNextPoll(3000);
+        }
+    }, [scheduleNextPoll]);
 
-        } catch (error) {
-            setMessages(prev => [...prev, { role: 'error', text: "Simulation Failed: " + error.message }]);
-            setIsSimulating(false);
+    const startSession = async () => {
+        if (pollRef.current) clearTimeout(pollRef.current);
+        setPhase(PHASES.DEPLOYING);
+        setQrCode(null);
+        setErrorText(null);
+        setStatusText('Starting WhatsApp bridge...');
+        try {
+            await workflowApi.deploy();
+            setPhase(PHASES.WAITING_QR);
+            setStatusText('Waiting for QR code...');
+            scheduleNextPoll(1500); // poll fast while Baileys initialises
+        } catch (err) {
+            const msg = err?.response?.data?.error || err?.message || 'Unknown error';
+            setPhase(PHASES.ERROR);
+            setErrorText(msg);
+            setStatusText('Session start failed');
         }
     };
 
-    const addStep = (label, delay) => {
-        setTimeout(() => {
-            setExecutionSteps(prev => [...prev, { label, completed: true }]);
-        }, delay);
+    const handleLogout = async () => {
+        if (!confirm('Stop current testing session?')) return;
+        if (pollRef.current) clearTimeout(pollRef.current);
+        try { await workflowApi.logout(); } catch (_) {}
+        setPhase(PHASES.IDLE);
+        setQrCode(null);
+        setStatusText('Session ended. Press the button to start again.');
     };
 
+    const isConnected = phase === PHASES.CONNECTED;
+    const isBusy = phase === PHASES.DEPLOYING || phase === PHASES.WAITING_QR;
+
     return (
-        <div className="flex h-full bg-gray-100 border-l border-gray-200">
-            {/* Phone Simulator */}
-            <div className="w-1/2 p-6 flex flex-col items-center justify-center">
-                <div className="w-[300px] h-[600px] bg-black rounded-[40px] p-3 shadow-2xl relative border-4 border-gray-800">
-                    {/* Notch/Island using CSS */}
-                    <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-24 h-6 bg-black rounded-b-xl z-20"></div>
+        <div className="flex h-[520px] bg-[#121212] rounded-xl overflow-hidden shadow-2xl border border-white/5">
 
-                    {/* Screen Content */}
-                    <div className="w-full h-full bg-[#E5DDD5] rounded-[32px] overflow-hidden flex flex-col relative">
-                        {/* Header */}
-                        <div className="bg-[#075E54] p-3 pt-8 flex items-center gap-2 text-white shadow-md">
-                            <div className="w-8 h-8 rounded-full bg-gray-300"></div>
-                            <div className="text-sm font-semibold">AutoFlow Bot</div>
-                        </div>
+            {/* ── Left: QR / Controls ────────────────────────────────────── */}
+            <div className="w-1/2 p-8 flex flex-col items-center justify-center bg-[#1e1e1e] border-r border-white/5">
+                <AnimatePresence mode="wait">
 
-                        {/* Messages Area */}
-                        <div className="flex-1 p-4 overflow-y-auto space-y-2">
-                            {messages.map((msg, idx) => (
-                                <motion.div
-                                    key={idx}
-                                    initial={{ opacity: 0, scale: 0.9 }}
-                                    animate={{ opacity: 1, scale: 1 }}
-                                    className={clsx(
-                                        "max-w-[80%] p-2 rounded-lg text-sm shadow-sm relative pb-5 whitespace-pre-wrap",
-                                        msg.role === 'user' ? "ml-auto bg-[#D9FDD3] text-black rounded-tr-none" : "mr-auto bg-white text-black rounded-tl-none",
-                                        msg.role === 'error' && "bg-red-100 text-red-600"
-                                    )}
-                                >
-                                    {msg.text}
-                                    <span className="text-[10px] text-gray-500 absolute bottom-1 right-2">{msg.time}</span>
-                                </motion.div>
-                            ))}
-                        </div>
-
-                        {/* Input Area */}
-                        <form onSubmit={handleSendMessage} className="p-2 bg-gray-100 flex gap-2 items-center">
-                            <input
-                                type="text"
-                                value={inputText}
-                                onChange={(e) => setInputText(e.target.value)}
-                                placeholder="Type a message..."
-                                className="flex-1 rounded-full border-none py-1.5 px-3 text-sm focus:ring-0"
-                            />
-                            <button type="submit" className="bg-[#075E54] text-white p-2 rounded-full">
-                                <Send size={16} />
+                    {/* Idle / Error */}
+                    {(phase === PHASES.IDLE || phase === PHASES.ERROR) && (
+                        <motion.div
+                            key="idle"
+                            initial={{ opacity: 0, y: 8 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0 }}
+                            className="flex flex-col items-center text-center gap-5"
+                        >
+                            {errorText && (
+                                <div className="text-[11px] text-red-400 bg-red-500/10 border border-red-500/20 px-4 py-2.5 rounded-xl mb-1 max-w-[220px] leading-relaxed">
+                                    {errorText}
+                                </div>
+                            )}
+                            <div className="p-6 bg-[#252526] rounded-3xl shadow-xl border border-white/10">
+                                <div className="w-[140px] h-[140px] flex items-center justify-center bg-[#121212] rounded-2xl border border-dashed border-white/10">
+                                    <Smartphone className="text-gray-600" size={52} />
+                                </div>
+                            </div>
+                            <div>
+                                <h4 className="text-xl font-black text-white mb-1">{statusText}</h4>
+                                <p className="text-sm text-gray-500 max-w-[220px] leading-relaxed">
+                                    Connect your WhatsApp to run live agent tests directly on your phone.
+                                </p>
+                            </div>
+                            <button
+                                onClick={startSession}
+                                className="bg-purple-600 text-white px-10 py-4 rounded-2xl hover:bg-purple-500 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl shadow-purple-900/40 font-black flex items-center gap-3"
+                            >
+                                <Rocket size={18} className="fill-current" />
+                                {phase === PHASES.ERROR ? 'Retry Session' : 'Initiate Test Bridge'}
                             </button>
-                        </form>
-                    </div>
-                </div>
+                        </motion.div>
+                    )}
+
+                    {/* Busy — connecting / waiting for QR */}
+                    {isBusy && (
+                        <motion.div
+                            key="busy"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="flex flex-col items-center text-center gap-5"
+                        >
+                            <div className="p-6 bg-[#252526] rounded-3xl shadow-xl border border-white/10">
+                                <div className="w-[140px] h-[140px] flex items-center justify-center bg-[#121212] rounded-2xl border border-dashed border-purple-500/20">
+                                    <RefreshCw className="animate-spin text-purple-500" size={48} />
+                                </div>
+                            </div>
+                            <h4 className="text-xl font-black text-white">{statusText}</h4>
+                            <p className="text-sm text-gray-500 max-w-[220px] leading-relaxed">
+                                Opening WebSocket to WhatsApp servers... this takes 3–10 seconds.
+                            </p>
+                        </motion.div>
+                    )}
+
+                    {/* QR Ready */}
+                    {phase === PHASES.QR_READY && qrCode && (
+                        <motion.div
+                            key="qr"
+                            initial={{ opacity: 0, scale: 0.9 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="flex flex-col items-center text-center gap-5"
+                        >
+                            <div className="p-6 bg-[#252526] rounded-3xl shadow-xl border border-white/10">
+                                <div className="p-3 bg-white rounded-2xl shadow-lg">
+                                    <QRCodeSVG value={qrCode} size={180} />
+                                </div>
+                                <p className="text-[10px] text-amber-500 uppercase tracking-widest font-black mt-4">
+                                    Scan to Link Device
+                                </p>
+                            </div>
+                            <h4 className="text-xl font-black text-white">{statusText}</h4>
+                            <p className="text-sm text-gray-500 max-w-[220px] leading-relaxed">
+                                Open WhatsApp → Linked Devices → Link a Device, then scan this QR code.
+                            </p>
+                        </motion.div>
+                    )}
+
+                    {/* Connected */}
+                    {isConnected && (
+                        <motion.div
+                            key="connected"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            className="w-full flex flex-col items-center gap-5"
+                        >
+                            <div className="bg-green-500/10 border border-green-500/20 p-5 rounded-3xl w-full text-center">
+                                <div className="flex items-center justify-center gap-2 mb-2">
+                                    <div className="h-2.5 w-2.5 rounded-full bg-green-500 animate-pulse shadow-[0_0_10px_rgba(34,197,94,0.5)]" />
+                                    <span className="text-green-400 font-black text-xs uppercase tracking-widest">Live Link Active</span>
+                                </div>
+                                <p className="text-[11px] text-green-300 font-medium leading-relaxed">
+                                    Your agent is listening. Send any message to your WhatsApp number to test.
+                                </p>
+                            </div>
+
+                            <div className="flex-1 bg-[#252526] rounded-[30px] p-6 border border-white/5 shadow-2xl flex flex-col items-center justify-center text-center w-full">
+                                <div className="w-16 h-16 bg-green-500/10 text-green-500 rounded-full flex items-center justify-center mb-4 ring-4 ring-green-500/5">
+                                    <Send size={28} />
+                                </div>
+                                <h5 className="font-black text-white text-base mb-2">Live Testing Phase</h5>
+                                <p className="text-sm text-gray-400 leading-relaxed font-medium">
+                                    Real interactions on your phone are processed by the AutoFlow engine in real-time.
+                                </p>
+                            </div>
+
+                            <button
+                                onClick={handleLogout}
+                                className="text-[10px] font-black uppercase tracking-widest text-red-400/60 hover:text-red-400 bg-red-500/5 hover:bg-red-500/10 px-6 py-3 rounded-xl transition-all border border-red-500/10 flex items-center gap-2"
+                            >
+                                <WifiOff size={12} /> Disconnect Session
+                            </button>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
             </div>
 
-            {/* Execution Log */}
-            <div className="w-1/2 bg-white border-l border-gray-200 p-6 overflow-y-auto">
-                <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                    <Clock size={18} />
-                    Execution Log
-                </h3>
-                <div className="space-y-4 relative">
-                    {/* Vertical Line */}
-                    <div className="absolute left-3 top-2 bottom-0 w-0.5 bg-gray-100"></div>
+            {/* ── Right: Execution Log ────────────────────────────────────── */}
+            <div className="w-1/2 flex flex-col bg-[#0d0d0d]">
+                <div className="p-5 border-b border-white/5 flex justify-between items-center bg-[#121212]">
+                    <h3 className="font-black text-xs text-amber-500 uppercase tracking-widest flex items-center gap-2">
+                        <Clock size={14} className="text-amber-500/70" />
+                        Execution Engine Logs
+                    </h3>
+                    <span className={clsx(
+                        'text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-full border',
+                        isConnected
+                            ? 'text-green-400 bg-green-500/10 border-green-500/20'
+                            : isBusy
+                                ? 'text-amber-400 bg-amber-500/10 border-amber-500/20 animate-pulse'
+                                : 'text-gray-600 bg-white/5 border-white/5'
+                    )}>
+                        {isConnected ? '● Live' : isBusy ? '⟳ Connecting' : '○ Offline'}
+                    </span>
+                </div>
 
-                    {executionSteps.map((step, idx) => (
-                        <motion.div
-                            key={idx}
-                            initial={{ opacity: 0, x: -10 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            className="flex items-center gap-3 relative z-10"
-                        >
-                            <div className="w-6 h-6 rounded-full bg-green-100 text-green-600 flex items-center justify-center ring-4 ring-white">
-                                <CheckCircle size={14} />
-                            </div>
-                            <span className="text-sm text-gray-700">{step.label}</span>
-                        </motion.div>
-                    ))}
+                <div className="flex-1 p-8 flex flex-col items-center justify-center text-center opacity-40">
+                    <div className="w-14 h-14 bg-[#121212] rounded-full flex items-center justify-center mb-5 border border-white/5">
+                        <Smartphone size={28} className="text-gray-500" />
+                    </div>
+                    <p className="text-xs text-gray-500 font-bold uppercase tracking-widest max-w-[180px]">
+                        {isConnected
+                            ? 'Incoming WhatsApp activity will sync here in real-time.'
+                            : 'Link your device to view live execution logs.'}
+                    </p>
+                </div>
 
-                    {executionSteps.length === 0 && !isSimulating && (
-                        <div className="text-gray-400 text-sm italic">
-                            Send a simulated message to see the execution logic here.
-                        </div>
-                    )}
+                <div className="p-5 bg-[#1a1a1b] border-t border-white/5 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                        <div className={clsx('h-1.5 w-1.5 rounded-full', isConnected ? 'bg-green-500' : 'bg-amber-500/40')} />
+                        <span className="text-[10px] text-gray-400 font-black uppercase tracking-widest">Engine Mode</span>
+                    </div>
+                    <span className="text-[10px] text-amber-500/80 font-black uppercase tracking-widest">v2.0 Beta</span>
                 </div>
             </div>
         </div>

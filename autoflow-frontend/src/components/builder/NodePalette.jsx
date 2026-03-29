@@ -1,8 +1,8 @@
-import { useState, useMemo } from 'react';
-import { Search, MessageSquare, Zap, Divide, MousePointerClick, ChevronRight, ChevronDown, CheckCircle, Link, Mail, Smartphone, Database, ShoppingCart, Globe, CreditCard, Users, Code, Cloud, Clock, Bot, Facebook, Twitter, Instagram, Linkedin, Slack, Github, Trello, Calendar, Activity, AlertTriangle, Shield, Key, HardDrive, FileText, BarChart, Layout, GitBranch, Video, DollarSign, Send, MessageCircle, Headphones, Flame, Box } from 'lucide-react';
+import { useState, useMemo, useEffect } from 'react';
+import { Search, MessageSquare, Zap, Divide, MousePointerClick, ChevronRight, ChevronDown, CheckCircle, Link, Mail, Smartphone, Database, ShoppingCart, Globe, CreditCard, Users, Code, Cloud, Clock, Bot, Facebook, Twitter, Instagram, Linkedin, Slack, Github, Trello, Calendar, Activity, AlertTriangle, Shield, Key, HardDrive, FileText, BarChart, Layout, GitBranch, Video, DollarSign, Send, MessageCircle, Headphones, Flame, Box, Loader2 } from 'lucide-react';
 import { TOOL_CATEGORIES } from '../../constants/tools';
-import toolsData from '../../data/tools.json'; // Import the 500+ tools
 import clsx from 'clsx';
+import axios from 'axios';
 
 // Extended Icon Map
 const IconMap = {
@@ -15,9 +15,35 @@ const IconMap = {
 
 export const NodePalette = () => {
     const [searchQuery, setSearchQuery] = useState('');
-    const [expandedCategories, setExpandedCategories] = useState(['core']);
+    const [expandedCategories, setExpandedCategories] = useState(['core', 'triggers', 'ai_models']);
+    const [toolsData, setToolsData] = useState([]);
+    const [isLoading, setIsLoading] = useState(true);
 
-    // Merge Core Logic with 500+ Tools dynamically
+    useEffect(() => {
+        const fetchTools = async () => {
+            try {
+                const response = await axios.get('http://localhost:3000/api/tools');
+                setToolsData(response.data);
+            } catch (error) {
+                console.warn('Backend /api/tools not available yet. Loading curated fallback tools.');
+                setToolsData([
+                    { id: 'webhook', name: 'Webhook', category: 'Triggers', icon: 'Zap' },
+                    { id: 'schedule', name: 'Schedule', category: 'Triggers', icon: 'Clock' },
+                    { id: 'http', name: 'HTTP Request', category: 'Actions', icon: 'Globe' },
+                    { id: 'condition', name: 'Condition (If/Else)', category: 'Actions', icon: 'GitBranch' },
+                    { id: 'gpt4', name: 'OpenAI ChatGPT', category: 'AI Models', icon: 'Bot' },
+                    { id: 'claude', name: 'Anthropic Claude', category: 'AI Models', icon: 'Cpu' },
+                    { id: 'gmail', name: 'Send Email', category: 'Integrations', icon: 'Mail' },
+                    { id: 'slack', name: 'Slack Message', category: 'Integrations', icon: 'Slack' }
+                ]);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        fetchTools();
+    }, []);
+
+    // Merge Core Logic with fetched Tools dynamically
     const allCategories = useMemo(() => {
         // 1. Get Core Logic (Triggers, Conditions, etc.)
         const coreLogic = TOOL_CATEGORIES[0];
@@ -46,7 +72,7 @@ export const NodePalette = () => {
 
         // 4. Return combined list
         return [coreLogic, ...dynamicCategories];
-    }, []);
+    }, [toolsData]);
 
     const onDragStart = (event, tool) => {
         // Pass tool data. For generic tools, we might need to pass more than just ID if the node needs label/icon.
@@ -82,9 +108,9 @@ export const NodePalette = () => {
 
             {/* Search Header */}
             <div className="p-4 border-b border-gray-100 bg-gray-50">
-                <div className="text-sm font-bold text-gray-800 uppercase tracking-wider mb-2 flex items-center gap-2">
-                    Toolbox
-                    <span className="bg-purple-100 text-purple-600 text-[10px] py-0.5 px-2 rounded-full">500+</span>
+                <div className="text-sm font-bold text-gray-800 uppercase tracking-wider mb-2 flex items-center justify-between">
+                    <span>Toolbox</span>
+                    <span className="bg-purple-100 text-purple-600 text-[10px] py-0.5 px-2 rounded-full">{toolsData.length} Tools</span>
                 </div>
                 <div className="relative">
                     <Search className="absolute left-3 top-2.5 text-gray-400" size={16} />
@@ -100,7 +126,12 @@ export const NodePalette = () => {
 
             {/* Scrollable List */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
-                {filteredCategories.length === 0 ? (
+                {isLoading ? (
+                    <div className="flex flex-col items-center justify-center h-full text-gray-400 space-y-2">
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        <span className="text-xs">Loading tools...</span>
+                    </div>
+                ) : filteredCategories.length === 0 ? (
                     <div className="text-center text-gray-400 py-8 text-sm">
                         No tools found matching "{searchQuery}"
                     </div>

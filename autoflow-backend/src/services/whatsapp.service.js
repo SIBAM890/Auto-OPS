@@ -11,6 +11,7 @@ let sock = null;
 let isConnected = false;
 let isConnecting = false;
 let qrCode = null;
+let connectTimeout = null;
 
 exports.connectToWhatsApp = async () => {
     // Check if already connected or connecting
@@ -32,10 +33,19 @@ exports.connectToWhatsApp = async () => {
             sock.ev.removeAllListeners();
             sock.end();
             sock = null;
-        } catch (e) {
-            console.error("Cleanup error:", e);
-        }
+        } catch (e) {}
     }
+
+    // Set a safety timeout - if no QR or connection in 60s, reset isConnecting
+    if (connectTimeout) clearTimeout(connectTimeout);
+    connectTimeout = setTimeout(() => {
+        if (isConnecting && !isConnected && !qrCode) {
+            console.log("🕒 Connection Timeout: Resetting state...");
+            isConnecting = false;
+            sock?.end();
+            sock = null;
+        }
+    }, 60000);
 
     try {
         const { state, saveCreds } = await useMultiFileAuthState("auth_info_baileys");
@@ -43,7 +53,9 @@ exports.connectToWhatsApp = async () => {
         sock = makeWASocket({
             auth: state,
             printQRInTerminal: false,
-            logger: require('pino')({ level: 'fatal' })
+            logger: require('pino')({ level: 'fatal' }),
+            connectTimeoutMs: 30000,
+            keepAliveIntervalMs: 15000
         });
 
         // Use a flag to prevent multiple connection.update executions for the same event in edge cases
@@ -55,9 +67,7 @@ exports.connectToWhatsApp = async () => {
                 if (fs.existsSync("auth_info_baileys")) {
                     await saveCreds(creds);
                 }
-            } catch (e) {
-                // Ignore save errors during cleanup
-            }
+            } catch (e) { }
         });
 
         sock.ev.on("connection.update", async (update) => {
@@ -75,7 +85,9 @@ exports.connectToWhatsApp = async () => {
                 isClosed = true;
 
                 const statusCode = lastDisconnect?.error?.output?.statusCode;
-                // Default to true (reconnect) if status is undefined (network drop), unless logged out
+                
+                // If it's a conflict or generic error that causes a loop, let's be careful
+                const isConflict = statusCode === DisconnectReason.connectionLost || statusCode === DisconnectReason.connectionClosed;
                 const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
 
                 console.log(`❌ Connection closed. Status: ${statusCode}, Reconnect: ${shouldReconnect}`);
@@ -89,31 +101,33 @@ exports.connectToWhatsApp = async () => {
                 if (!shouldReconnect) {
                     console.log("⚠️ Session Invalidated/Logged Out. Cleaning up...");
                     isConnecting = false;
+                    if (connectTimeout) clearTimeout(connectTimeout);
                     try {
                         sock?.end();
                     } catch (e) { }
                     sock = null;
 
                     try {
-                        // Small delay to ensure file handles are released
-                        await new Promise(r => setTimeout(r, 500));
+                        await new Promise(r => setTimeout(r, 800));
                         fs.rmSync("auth_info_baileys", { recursive: true, force: true });
                         console.log("📂 Session files deleted.");
                     } catch (e) {
                         console.error("Failed to delete session files:", e.message);
                     }
                 } else {
-                    // Auto-reconnect
-                    console.log("🔄 Auto-reconnecting in 2s...");
-                    isConnecting = false; // Reset flag to allow recursion
+                    // Auto-reconnect with backoff logic
+                    console.log("🔄 Auto-reconnecting in 3s...");
+                    isConnecting = false; 
+                    if (connectTimeout) clearTimeout(connectTimeout);
+
                     try {
-                        sock?.end(); // Ensure partial socket is closed
+                        sock?.end();
                     } catch (e) { }
                     sock = null;
 
                     setTimeout(() => {
                         exports.connectToWhatsApp();
-                    }, 2000);
+                    }, 3000);
                 }
             }
 
@@ -122,6 +136,7 @@ exports.connectToWhatsApp = async () => {
                 isConnected = true;
                 isConnecting = false;
                 qrCode = null;
+                if (connectTimeout) clearTimeout(connectTimeout);
             }
         });
 
@@ -147,6 +162,7 @@ exports.connectToWhatsApp = async () => {
     } catch (e) {
         console.error("❌ WhatsApp Connection Failed:", e);
         isConnecting = false;
+        if (connectTimeout) clearTimeout(connectTimeout);
         return { error: e.message };
     }
 };
@@ -162,19 +178,20 @@ exports.getStatus = () => {
 exports.logout = async () => {
     try {
         if (sock) {
+            sock.ev.removeAllListeners();
             sock.end(undefined); // Close connection
             sock = null;
         }
-    } catch (e) {
-        console.error("Error closing socket:", e);
-    }
+    } catch (e) { }
 
     isConnected = false;
     isConnecting = false;
     qrCode = null;
+    if (connectTimeout) clearTimeout(connectTimeout);
 
     try {
         console.log("⚠️ Manual Logout. Clearing session...");
+        await new Promise(r => setTimeout(r, 500));
         fs.rmSync("auth_info_baileys", { recursive: true, force: true });
         return { success: true };
     } catch (e) {
@@ -182,4 +199,3 @@ exports.logout = async () => {
         return { success: false, error: e.message };
     }
 };
-

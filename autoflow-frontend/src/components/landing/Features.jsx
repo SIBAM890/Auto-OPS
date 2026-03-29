@@ -46,7 +46,7 @@ const Features = () => {
                             </div>
                             <h3 className="text-2xl font-bold text-white mb-4">Human-like Understanding</h3>
                             <p className="text-gray-400 mb-8 max-w-md">
-                                Powered by Gemini Pro, our agents understand context, intent, and nuance—not just keywords. They handle complex queries like refunds, tracking, and product recommendations with ease.
+                                Powered by Ollama qwen3:8b, our agents understand context, intent, and nuance—not just keywords. They handle complex queries like refunds, tracking, and product recommendations with ease.
                             </p>
 
                             {/* Chat Simulation */}

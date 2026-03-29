@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef, Component } from 'react';
+import { useWorkflowStore } from '../../store/workflowStore';
 import ReactFlow, {
     Controls,
     Background,
@@ -10,6 +11,12 @@ import ReactFlow, {
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { CustomNode } from './CustomNode';
+import TriggerNode from '../nodes/TriggerNode';
+import ActionNode from '../nodes/ActionNode';
+import ConditionNode from '../nodes/ConditionNode';
+import WhatsAppNode from '../nodes/WhatsAppNode';
+import InventoryNode from '../nodes/InventoryNode';
+import DelayNode from '../nodes/DelayNode';
 
 // Simple ID generator
 const generateId = () => `node_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -78,14 +85,30 @@ const getLayoutedElements = (nodes, edges) => {
     });
 };
 
+const defaultEdgeOptions = { type: 'smoothstep', animated: true, style: { stroke: '#555', strokeWidth: 2 } };
+
 export const WorkflowGraph = ({ workflowData }) => {
-    const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
-    const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+    const nodes = useWorkflowStore(state => state.nodes);
+    const edges = useWorkflowStore(state => state.edges);
+    const setNodes = useWorkflowStore(state => state.setNodes);
+    const setEdges = useWorkflowStore(state => state.setEdges);
+    const onNodesChange = useWorkflowStore(state => state.onNodesChange);
+    const onEdgesChange = useWorkflowStore(state => state.onEdgesChange);
+    const setSelectedNode = useWorkflowStore(state => state.setSelectedNode);
+
     const reactFlowInstance = useReactFlow();
     const reactFlowWrapper = useRef(null);
 
     // Register custom node types
-    const nodeTypes = useMemo(() => ({ custom: CustomNode }), []);
+    const nodeTypes = useMemo(() => ({ 
+        trigger: TriggerNode,
+        action: ActionNode,
+        condition: ConditionNode,
+        whatsapp: WhatsAppNode,
+        inventory: InventoryNode,
+        delay: DelayNode,
+        custom: CustomNode 
+    }), []);
 
     // Handle initial workflow data from AI
     useEffect(() => {
@@ -168,50 +191,104 @@ export const WorkflowGraph = ({ workflowData }) => {
     const onDrop = useCallback(
         (event) => {
             event.preventDefault();
-            const type = event.dataTransfer.getData('application/reactflow');
-            if (typeof type === 'undefined' || !type) return;
 
-            const reactFlowBounds = reactFlowWrapper.current.getBoundingClientRect();
-            const position = reactFlowInstance.project({
-                x: event.clientX - reactFlowBounds.left,
-                y: event.clientY - reactFlowBounds.top,
+            const toolId = event.dataTransfer.getData('application/reactflow');
+            if (!toolId) return;
+
+            // Try to get richer tool data if available
+            let toolData = null;
+            try {
+                const raw = event.dataTransfer.getData('application/toolData');
+                if (raw) toolData = JSON.parse(raw);
+            } catch (_) {}
+
+            // screenToFlowPosition replaces the deprecated .project() in ReactFlow v11
+            const position = reactFlowInstance.screenToFlowPosition({
+                x: event.clientX,
+                y: event.clientY,
             });
+
+            const label = toolData?.label
+                || toolData?.name
+                || (toolId.charAt(0).toUpperCase() + toolId.slice(1));
 
             const newNode = {
                 id: generateId(),
                 type: 'custom',
                 position,
                 data: {
-                    label: `${type.charAt(0).toUpperCase() + type.slice(1)}`,
-                    type: type
+                    label,
+                    type: toolData?.type || toolId,
+                    icon: toolData?.icon || undefined,
                 },
             };
 
-            setNodes((nds) => nds.concat(newNode));
+            // setNodes is a plain Zustand setter — pass the full new array, NOT a function
+            setNodes([...reactFlowInstance.getNodes(), newNode]);
         },
         [reactFlowInstance, setNodes]
     );
 
+    const handleSelectionChange = useCallback((params) => {
+        const selected = params.nodes[0] || null;
+        setSelectedNode(selected);
+    }, [setSelectedNode]);
+
     return (
-        <div
-            className="w-full h-full bg-[#0a0a0a]"
-            ref={reactFlowWrapper}
-            onDragOver={onDragOver}
-            onDrop={onDrop}
-        >
-            <ReactFlow
-                nodes={nodes}
-                edges={edges}
-                onNodesChange={onNodesChange}
-                onEdgesChange={onEdgesChange}
-                onConnect={onConnect}
-                nodeTypes={nodeTypes}
-                fitView
-                defaultEdgeOptions={{ type: 'smoothstep', animated: true, style: { stroke: '#555', strokeWidth: 2 } }}
+        <GraphErrorBoundary>
+            <div
+                className="w-full h-full bg-[#0a0a0a]"
+                ref={reactFlowWrapper}
+                onDragOver={onDragOver}
+                onDrop={onDrop}
             >
-                <Background color="#333" gap={24} size={1.5} variant="dots" />
-                <Controls className="!bg-[#1e1e1e] !border-[#333] !fill-white [&>button]:!fill-gray-400 [&>button:hover]:!fill-white" />
-            </ReactFlow>
-        </div>
+                <ReactFlow
+                    nodes={nodes}
+                    edges={edges}
+                    onNodesChange={onNodesChange}
+                    onEdgesChange={onEdgesChange}
+                    onConnect={onConnect}
+                    onSelectionChange={handleSelectionChange}
+                    nodeTypes={nodeTypes}
+                    fitView
+                    defaultEdgeOptions={defaultEdgeOptions}
+                >
+                    <Background color="#333" gap={24} size={1.5} variant="dots" />
+                    <Controls className="!bg-[#1e1e1e] !border-[#333] !fill-white [&>button]:!fill-gray-400 [&>button:hover]:!fill-white" />
+                </ReactFlow>
+            </div>
+        </GraphErrorBoundary>
     );
 };
+
+// ── Error Boundary: prevents the whole page going blank on canvas errors ───────
+class GraphErrorBoundary extends Component {
+    constructor(props) {
+        super(props);
+        this.state = { hasError: false, error: null };
+    }
+    static getDerivedStateFromError(error) {
+        return { hasError: true, error };
+    }
+    componentDidCatch(error, info) {
+        console.error('WorkflowGraph crashed:', error, info);
+    }
+    render() {
+        if (this.state.hasError) {
+            return (
+                <div className="w-full h-full bg-[#0a0a0a] flex flex-col items-center justify-center gap-4">
+                    <div className="text-red-400 text-4xl">⚠️</div>
+                    <p className="text-white font-bold text-sm">Canvas Error</p>
+                    <p className="text-gray-500 text-xs max-w-xs text-center">{this.state.error?.message}</p>
+                    <button
+                        onClick={() => this.setState({ hasError: false, error: null })}
+                        className="px-4 py-2 bg-amber-500 text-black text-xs font-bold rounded-lg hover:bg-amber-400 transition-colors"
+                    >
+                        Reload Canvas
+                    </button>
+                </div>
+            );
+        }
+        return this.props.children;
+    }
+}

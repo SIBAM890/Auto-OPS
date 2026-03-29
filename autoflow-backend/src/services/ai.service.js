@@ -3,6 +3,16 @@ require('dotenv').config();
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
+// Helper: Run a promise with a timeout
+function withTimeout(promise, ms, label = 'Operation') {
+    return Promise.race([
+        promise,
+        new Promise((_, reject) =>
+            setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms)
+        )
+    ]);
+}
+
 /**
  * Validate workflow structure
  */
@@ -78,7 +88,8 @@ exports.generateWorkflow = async (userPrompt, fileContext = "") => {
   }
 
   // ⚡ USE FLASH MODEL FOR SPEED (As requested)
-  const modelsToTry = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-flash-latest", "gemini-pro-latest"];
+  // gemini-2.0-flash is fast (~2-5s); gemini-2.5-flash is a thinking model (~30-60s)
+  const modelsToTry = ["gemini-2.0-flash", "gemini-2.5-flash", "gemini-1.5-flash", "gemini-1.5-pro"];
 
   for (const modelName of modelsToTry) {
     try {
@@ -148,7 +159,11 @@ exports.generateWorkflow = async (userPrompt, fileContext = "") => {
       }
       `.trim();
 
-      const result = await model.generateContent(prompt);
+      const result = await withTimeout(
+          model.generateContent(prompt),
+          30000,
+          `${modelName} generateContent`
+      );
       const response = await result.response;
       const text = response.text();
 
@@ -175,7 +190,7 @@ exports.generateWorkflow = async (userPrompt, fileContext = "") => {
 exports.explainWorkflow = async (workflowJson) => {
   // ⚡ Simple Text Explanation (Prevents Frontend Crash)
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
     const prompt = `
       Analyze this workflow and explain it in simple terms.
       
@@ -188,7 +203,11 @@ exports.explainWorkflow = async (workflowJson) => {
       4. Keep it brief (max 3-4 lines).
       `.trim();
 
-    const result = await model.generateContent(prompt);
+    const result = await withTimeout(
+        model.generateContent(prompt),
+        15000,
+        'explainWorkflow'
+    );
     const text = result.response.text();
     // Double cleaning just in case
     const cleanText = text.replace(/```json/g, "").replace(/```/g, "").replace(/^{"explanation":/g, "").replace(/}$/g, "").trim();
